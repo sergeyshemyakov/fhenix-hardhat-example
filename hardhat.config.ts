@@ -23,6 +23,10 @@ const providerApiKey =
 const deployerPrivateKey =
   process.env.DEPLOYER_PRIVATE_KEY ??
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const bobPrivateKey = process.env.BOB_PRIVATE_KEY;
+const carolPrivateKey = process.env.CAROL_PRIVATE_KEY;
+const davePrivateKey = process.env.DAVE_PRIVATE_KEY;
+const evePrivateKey = process.env.EVE_PRIVATE_KEY;
 // If not set, it uses ours Etherscan default API key.
 const etherscanApiKey =
   process.env.ETHERSCAN_API_KEY || "DNXJA8RX2Q3VZ4URQIWP7Z68CJXQZSC6AW";
@@ -38,7 +42,7 @@ const config= {
       },
     },
   },
-  defaultNetwork: "localfhenix",
+  defaultNetwork: "nitrogen",
   namedAccounts: {
     deployer: {
       // By default, it will take the first Hardhat account as the deployer
@@ -56,7 +60,7 @@ const config= {
     nitrogen: {
       url: "https://api.nitrogen.fhenix.zone",
       chainId: 8008148,
-      accounts: [deployerPrivateKey],
+      accounts: [deployerPrivateKey, bobPrivateKey, carolPrivateKey, davePrivateKey, evePrivateKey],
     },
     localhost: {
       chainId: 31337,
