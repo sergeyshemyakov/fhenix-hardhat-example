@@ -30,11 +30,6 @@ describe("Spy", function () {
   });
 
   describe("Deployment", function () {
-    // it("Should deploy", async function () {
-    //   const counterVal = await counter.getCounter();
-    //   expect(await counter.getCounter()).to.equal(0n);
-    // });
-
     it("should not set the requirement for the 0th checkpoint by Alice", async function () {
       const encToCount = await fhenixjs.encrypt_uint32(100);
 
@@ -47,6 +42,25 @@ describe("Spy", function () {
       }
     });
 
+    it("should not let bob to decrypt the private state", async function () {
+        signer = (await ethers.getSigners())[1];
+        const permission = await createPermissionForContract(
+            hre,
+            signer,
+            spyAddress,
+        );
+        
+        try {
+            const sealedReq = await spy
+                .connect(signer)
+                .getSecretRequirements(permission);
+        } catch (error: unknown) {
+            expect((error as Error).message).to.equal(
+                "execution reverted",
+              );
+        }
+    });
+
     it("should set the requirement by the 0th checkpoint (bob)", async function () {
         const encToCount = await fhenixjs.encrypt_uint32(100);
         signer = (await ethers.getSigners())[1];
@@ -54,5 +68,132 @@ describe("Spy", function () {
         
         await expect(tx).to.emit(spy, "RequirementUpdated").withArgs("0x70C3f7fd4c9bECA84c5e3Ff117e41c7219f7a84D", 0);
     });
+
+    it("should set the requirement by the 0th checkpoint (bob) and be seen by alice", async function () {
+        const encToCount = await fhenixjs.encrypt_uint32(100);
+        signer = (await ethers.getSigners())[1];
+        const tx = await spy.connect(signer).setSecretRequirement(0, encToCount);
+        
+        // Now Alice should be able to check the private state
+        signer = (await ethers.getSigners())[0];
+        const permission = await createPermissionForContract(
+            hre,
+            signer,
+            spyAddress,
+        );
+
+        const sealedReq = await spy
+            .connect(signer)
+            .getSecretRequirements(permission);
+
+        const unsealedReq = fhenixjs.unseal(
+            spyAddress,
+            sealedReq,
+            signer.address,
+        );
+
+        expect(unsealedReq).to.equal(
+            100,
+            "The unsealed requirements should be the same as set by Bob",
+        );
+    });
+
+    it("should set the requirement by the 3rd checkpoint (eve) and be seen by alice", async function () {
+        const encToCount = await fhenixjs.encrypt_uint32(17);
+        signer = (await ethers.getSigners())[4];
+        const tx = await spy.connect(signer).setSecretRequirement(3, encToCount);
+        
+        // Now Alice should be able to check the private state
+        signer = (await ethers.getSigners())[0];
+        const permission = await createPermissionForContract(
+            hre,
+            signer,
+            spyAddress,
+        );
+
+        const sealedReq = await spy
+            .connect(signer)
+            .getSecretRequirements(permission);
+
+        const unsealedReq = fhenixjs.unseal(
+            spyAddress,
+            sealedReq,
+            signer.address,
+        );
+
+        expect(unsealedReq).to.equal(
+            285212672,
+            "The unsealed requirements should be the same as set by Eve",
+        );
+    });
+
+    it("should set the requirement by the 3rd checkpoint (eve) after truncating 273 -> 11 and seen by alice", async function () {
+        const encToCount = await fhenixjs.encrypt_uint32(273);
+        signer = (await ethers.getSigners())[4];
+        const tx = await spy.connect(signer).setSecretRequirement(3, encToCount);
+        
+        // Now Alice should be able to check the private state
+        signer = (await ethers.getSigners())[0];
+        const permission = await createPermissionForContract(
+            hre,
+            signer,
+            spyAddress,
+        );
+
+        const sealedReq = await spy
+            .connect(signer)
+            .getSecretRequirements(permission);
+
+        const unsealedReq = fhenixjs.unseal(
+            spyAddress,
+            sealedReq,
+            signer.address,
+        );
+        expect(unsealedReq).to.equal(
+            285212672,
+            "The unsealed requirements should be the same as set by Eve",
+        );
+    });
+
+    it("should set the requirements by all checkpoints and seen by alice", async function () {
+        const encToCountBob = await fhenixjs.encrypt_uint32(120);   // 0x78
+        signer = (await ethers.getSigners())[1];
+        await spy.connect(signer).setSecretRequirement(0, encToCountBob);
+
+        const encToCountCarol = await fhenixjs.encrypt_uint32(86);  // 0x56
+        signer = (await ethers.getSigners())[2];
+        await spy.connect(signer).setSecretRequirement(1, encToCountCarol);
+        
+        const encToCountDave = await fhenixjs.encrypt_uint32(52);  // 0x34
+        signer = (await ethers.getSigners())[3];
+        await spy.connect(signer).setSecretRequirement(2, encToCountDave);
+
+        const encToCountEve = await fhenixjs.encrypt_uint32(18);  // 0x12
+        signer = (await ethers.getSigners())[4];
+        await spy.connect(signer).setSecretRequirement(3, encToCountEve);
+
+        // Now Alice should be able to check the private state
+        signer = (await ethers.getSigners())[0];
+        const permission = await createPermissionForContract(
+            hre,
+            signer,
+            spyAddress,
+        );
+
+        const sealedReq = await spy
+            .connect(signer)
+            .getSecretRequirements(permission);
+
+        const unsealedReq = fhenixjs.unseal(
+            spyAddress,
+            sealedReq,
+            signer.address,
+        );
+        expect(unsealedReq).to.equal(
+            305419896,
+            "The unsealed requirements should be the same as set by everyone",
+        );
+    });
+
   });
 });

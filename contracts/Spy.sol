@@ -45,7 +45,7 @@ contract Spy is Permissioned {
     function getSecretRequirements(Permission memory permission)
         public
         view
-        onlySender(permission)
+        onlyPermitted(permission, spyAddress)
         returns (string memory)
     {
         return FHE.sealoutput(secretRequirements, permission.publicKey);
